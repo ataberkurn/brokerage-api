@@ -1,5 +1,6 @@
 package com.brokerage.api.controller;
 
+import com.brokerage.api.annotation.CheckCustomerAccess;
 import com.brokerage.api.entity.Asset;
 import com.brokerage.api.service.AssetService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class AssetController {
     private final AssetService assetService;
 
     @GetMapping
+    @CheckCustomerAccess
     public List<Asset> getAssetsByCustomerId(@RequestParam UUID customerId) {
         return assetService.getAssetsByCustomerId(customerId);
     }
