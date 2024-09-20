@@ -92,6 +92,7 @@ public class OrderService {
         }
     }
 
+    @Transactional
     public boolean match(UUID orderId) {
         Order order = getById(orderId);
 
@@ -126,6 +127,7 @@ public class OrderService {
         return orderRepository.findById(id).orElseThrow(() -> new OrderNotFoundException("order not found with ID: " + id));
     }
 
+    @Transactional
     public boolean delete(UUID orderId) {
         Order order = getById(orderId);
 

@@ -39,8 +39,8 @@ public class WebSecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/users/authenticate").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/health-check").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/authenticate").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/customers").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exception -> exception.accessDeniedPage("/user/authenticate"))
                 .addFilterBefore(new JWTTokenFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
