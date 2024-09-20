@@ -2,6 +2,7 @@ package com.brokerage.api.service;
 
 import com.brokerage.api.dto.DepositRequest;
 import com.brokerage.api.dto.WithdrawRequest;
+import com.brokerage.api.entity.Asset;
 import com.brokerage.api.entity.Customer;
 import com.brokerage.api.entity.Transaction;
 import com.brokerage.api.enumeration.TransactionType;
@@ -11,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -20,23 +20,21 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final CustomerService customerService;
+    private final AssetService assetService;
 
     @Transactional
     public boolean deposit(DepositRequest request) {
-        if (request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+        if (request.amount() < 0) {
             throw new IllegalArgumentException("Deposit amount must be positive.");
         }
-
         Customer customer = customerService.getById(request.customerId());
-        customer.setBalance(customer.getBalance().add(request.amount()));
-        customerService.save(customer);
 
-        Transaction transaction = new Transaction();
-        transaction.setCreatedAt(LocalDateTime.now());
-        transaction.setType(TransactionType.DEPOSIT);
-        transaction.setCustomer(customer);
-        transaction.setAmount(request.amount());
-        transactionRepository.save(transaction);
+        Asset tryAsset = assetService.getAssetByCustomerIdAndName(request.customerId(), "TRY");
+        tryAsset.setSize(tryAsset.getSize() + request.amount());
+        tryAsset.setUsableSize(tryAsset.getUsableSize() + request.amount());
+        assetService.save(tryAsset);
+
+        recordTransaction(customer, request.amount(), TransactionType.DEPOSIT);
         return true;
     }
 
@@ -44,19 +42,25 @@ public class TransactionService {
     public boolean withdraw(WithdrawRequest request) {
         Customer customer = customerService.getById(request.customerId());
 
-        if (customer.getBalance().compareTo(request.amount()) < 0) {
+        Asset tryAsset = assetService.getAssetByCustomerIdAndName(request.customerId(), "TRY");
+        if (tryAsset.getUsableSize() < request.amount()) {
             throw new InsufficientBalanceException("Insufficient balance");
         }
 
-        customer.setBalance(customer.getBalance().subtract(request.amount()));
-        customerService.save(customer);
+        tryAsset.setSize(tryAsset.getSize() - request.amount());
+        tryAsset.setUsableSize(tryAsset.getUsableSize() - request.amount());
+        assetService.save(tryAsset);
 
+        recordTransaction(customer, request.amount(), TransactionType.WITHDRAW);
+        return true;
+    }
+
+    private void recordTransaction(Customer customer, int amount, TransactionType type) {
         Transaction transaction = new Transaction();
         transaction.setCreatedAt(LocalDateTime.now());
-        transaction.setType(TransactionType.WITHDRAW);
+        transaction.setType(type);
         transaction.setCustomer(customer);
-        transaction.setAmount(request.amount());
+        transaction.setAmount(amount);
         transactionRepository.save(transaction);
-        return true;
     }
 }
