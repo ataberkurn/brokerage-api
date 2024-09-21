@@ -9,6 +9,8 @@ import com.brokerage.api.exception.CustomerNotFoundException;
 import com.brokerage.api.exception.OrderNotFoundException;
 import com.brokerage.api.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,15 +42,7 @@ public class OrderService {
         assetService.save(tryAsset);
         assetService.save(requestedAsset);
 
-        Order order = new Order();
-        order.setCreatedAt(LocalDateTime.now());
-        order.setCustomer(customerService.getById(request.customerId()));
-        order.setAssetName(request.assetName());
-        order.setSize(request.size());
-        order.setPrice(request.price());
-        order.setSide(request.side());
-        order.setStatus(OrderStatus.PENDING);
-        orderRepository.save(order);
+        recordOrder(request);
         return true;
     }
 
@@ -92,6 +86,19 @@ public class OrderService {
         }
     }
 
+    @CachePut(value = "orders", key = "#result.id", cacheManager = "redisCacheManager")
+    public Order recordOrder(OrderRequest request) {
+        Order order = new Order();
+        order.setCreatedAt(LocalDateTime.now());
+        order.setCustomer(customerService.getById(request.customerId()));
+        order.setAssetName(request.assetName());
+        order.setSize(request.size());
+        order.setPrice(request.price());
+        order.setSide(request.side());
+        order.setStatus(OrderStatus.PENDING);
+        return orderRepository.save(order);
+    }
+
     @Transactional
     public boolean match(UUID orderId) {
         Order order = getById(orderId);
@@ -110,11 +117,11 @@ public class OrderService {
             assetService.save(tryAsset);
         }
 
-        order.setStatus(OrderStatus.MATCHED);
-        orderRepository.save(order);
+        updateStatus(order, OrderStatus.MATCHED);
         return true;
     }
 
+    @Cacheable(value = "orders", key = "#customerId + #startDate + #endDate", cacheManager = "redisCacheManager")
     public List<Order> getOrdersByCustomerId(UUID customerId, LocalDate startDate, LocalDate endDate) {
         if (startDate.isAfter(endDate)) {
             throw new IllegalArgumentException("Start date must be before or equal to end date");
@@ -123,6 +130,7 @@ public class OrderService {
         return orderRepository.findAllByCustomer_IdAndCreatedAtBetween(customerId, startDate.atStartOfDay(), endDate.atTime(23, 59, 59, 999999999));
     }
 
+    @Cacheable(value = "orders", key = "#id", cacheManager = "redisCacheManager")
     public Order getById(UUID id) {
         return orderRepository.findById(id).orElseThrow(() -> new OrderNotFoundException("order not found with ID: " + id));
     }
@@ -141,8 +149,13 @@ public class OrderService {
         tryAsset.setUsableSize(tryAsset.getUsableSize() + amountToReturn);
         assetService.save(tryAsset);
 
-        order.setStatus(OrderStatus.CANCELLED);
-        orderRepository.save(order);
+        updateStatus(order, OrderStatus.CANCELLED);
         return true;
+    }
+
+    @CachePut(value = "orders", key = "#order.id", cacheManager = "redisCacheManager")
+    public Order updateStatus(Order order, OrderStatus status) {
+        order.setStatus(status);
+        return orderRepository.save(order);
     }
 }
