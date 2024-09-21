@@ -42,6 +42,10 @@ public class TransactionService {
     public boolean withdraw(WithdrawRequest request) {
         Customer customer = customerService.getById(request.customerId());
 
+        if (customer.getIban() == null) {
+            throw new IllegalStateException("User should have an IBAN");
+        }
+
         Asset tryAsset = assetService.getAssetByCustomerIdAndName(request.customerId(), "TRY");
         if (tryAsset.getUsableSize() < request.amount()) {
             throw new InsufficientBalanceException("Insufficient balance");

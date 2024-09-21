@@ -1,7 +1,7 @@
 package com.brokerage.api.service;
 
 import com.brokerage.api.entity.User;
-import com.brokerage.api.exception.UserNotFoundException;
+import com.brokerage.api.exception.ResourceNotFoundException;
 import com.brokerage.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,7 +18,7 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
 
     public User getByEmail(String email) {
-        return userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("user not found with email: " + email));
+        return userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User", "Email", email));
     }
 
     public boolean userExists(UUID userId) {

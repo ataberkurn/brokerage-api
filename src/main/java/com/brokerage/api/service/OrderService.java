@@ -5,8 +5,7 @@ import com.brokerage.api.entity.Asset;
 import com.brokerage.api.entity.Order;
 import com.brokerage.api.enumeration.OrderSide;
 import com.brokerage.api.enumeration.OrderStatus;
-import com.brokerage.api.exception.CustomerNotFoundException;
-import com.brokerage.api.exception.OrderNotFoundException;
+import com.brokerage.api.exception.ResourceNotFoundException;
 import com.brokerage.api.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CachePut;
@@ -48,11 +47,11 @@ public class OrderService {
 
     private void validateRequest(OrderRequest request) {
         if (!assetValidationService.isAssetValid(request.assetName())) {
-            throw new IllegalArgumentException("asset not valid");
+            throw new IllegalArgumentException("Asset not valid");
         }
 
         if (!userService.userExists(request.customerId())) {
-            throw new CustomerNotFoundException("customer not found with ID: " + request.customerId());
+            throw new ResourceNotFoundException("Customer", "ID", request.customerId());
         }
     }
 
@@ -132,7 +131,7 @@ public class OrderService {
 
     @Cacheable(value = "orders", key = "#id", cacheManager = "redisCacheManager")
     public Order getById(UUID id) {
-        return orderRepository.findById(id).orElseThrow(() -> new OrderNotFoundException("order not found with ID: " + id));
+        return orderRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Order", "ID", id));
     }
 
     @Transactional
