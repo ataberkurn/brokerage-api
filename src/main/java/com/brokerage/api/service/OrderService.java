@@ -8,6 +8,7 @@ import com.brokerage.api.enumeration.OrderStatus;
 import com.brokerage.api.exception.ResourceNotFoundException;
 import com.brokerage.api.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -99,7 +100,8 @@ public class OrderService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public boolean match(UUID orderId) {
-        Order order = getById(orderId);
+        OrderService proxy = (OrderService) AopContext.currentProxy();
+        Order order = proxy.getById(orderId);
 
         if (order.getStatus() != OrderStatus.PENDING) {
             throw new IllegalStateException("Only pending orders can be matched.");
@@ -135,7 +137,8 @@ public class OrderService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public boolean delete(UUID orderId) {
-        Order order = getById(orderId);
+        OrderService proxy = (OrderService) AopContext.currentProxy();
+        Order order = proxy.getById(orderId);
 
         if (order.getStatus() != OrderStatus.PENDING) {
             throw new IllegalStateException("Order cannot be cancelled");
