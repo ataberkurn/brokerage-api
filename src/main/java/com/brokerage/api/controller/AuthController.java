@@ -17,7 +17,7 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping
+    @PostMapping("/authenticate")
     public ApiResponse<Token> authenticate(@RequestBody LoginRequest loginRequest) {
         return authService.authenticate(loginRequest.email(), loginRequest.password());
     }
