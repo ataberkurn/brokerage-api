@@ -9,7 +9,6 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -20,7 +19,6 @@ public class CustomerService {
 
     @CachePut(value = "customers", key = "#customer.id", cacheManager = "redisCacheManager")
     public boolean create(Customer customer) {
-        customer.setCreatedAt(LocalDateTime.now());
         customer.setRole(Role.CUSTOMER);
         customerRepository.save(customer);
         return true;

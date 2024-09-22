@@ -12,8 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
@@ -61,7 +59,6 @@ public class TransactionService {
 
     private void recordTransaction(Customer customer, int amount, TransactionType type) {
         Transaction transaction = new Transaction();
-        transaction.setCreatedAt(LocalDateTime.now());
         transaction.setType(type);
         transaction.setCustomer(customer);
         transaction.setAmount(amount);

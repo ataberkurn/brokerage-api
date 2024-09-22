@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -88,7 +87,6 @@ public class OrderService {
     @CachePut(value = "orders", key = "#result.id", cacheManager = "redisCacheManager")
     public Order recordOrder(OrderRequest request) {
         Order order = new Order();
-        order.setCreatedAt(LocalDateTime.now());
         order.setCustomer(customerService.getById(request.customerId()));
         order.setAssetName(request.assetName());
         order.setSize(request.size());
