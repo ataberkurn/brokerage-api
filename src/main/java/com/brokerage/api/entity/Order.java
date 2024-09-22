@@ -18,6 +18,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -41,8 +42,8 @@ public class Order {
     private String assetName;
     @Enumerated(EnumType.STRING)
     private OrderSide side;
-    private int size;
-    private int price;
+    private BigDecimal size;
+    private BigDecimal price;
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 }

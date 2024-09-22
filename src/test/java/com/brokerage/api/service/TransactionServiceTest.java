@@ -13,7 +13,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.util.UUID;  
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,12 +49,12 @@ public class TransactionServiceTest {
         customer.setId(customerId);
         customer.setIban("123456");
 
-        depositRequest = new DepositRequest(customerId, 100);
-        withdrawRequest = new WithdrawRequest(customerId, 50, "123456");
+        depositRequest = new DepositRequest(customerId, BigDecimal.valueOf(100));
+        withdrawRequest = new WithdrawRequest(customerId, BigDecimal.valueOf(50), "123456");
 
         tryAsset = new Asset();
-        tryAsset.setSize(200);
-        tryAsset.setUsableSize(200);
+        tryAsset.setSize(BigDecimal.valueOf(200));
+        tryAsset.setUsableSize(BigDecimal.valueOf(200));
     }
 
     @Test
@@ -64,14 +65,14 @@ public class TransactionServiceTest {
         boolean result = transactionService.deposit(depositRequest);
 
         assertTrue(result);
-        assertEquals(300, tryAsset.getSize());
-        assertEquals(300, tryAsset.getUsableSize());
+        assertEquals(BigDecimal.valueOf(300), tryAsset.getSize());
+        assertEquals(BigDecimal.valueOf(300), tryAsset.getUsableSize());
         verify(transactionRepository, times(1)).save(any(Transaction.class));
     }
 
     @Test
     public void testDeposit_NegativeAmount() {
-        depositRequest = new DepositRequest(customerId, -50);
+        depositRequest = new DepositRequest(customerId, BigDecimal.valueOf(-50));
 
         Exception exception = assertThrows(IllegalArgumentException.class, () -> transactionService.deposit(depositRequest));
         assertEquals("Deposit amount must be positive.", exception.getMessage());
@@ -85,14 +86,14 @@ public class TransactionServiceTest {
         boolean result = transactionService.withdraw(withdrawRequest);
 
         assertTrue(result);
-        assertEquals(150, tryAsset.getSize());
-        assertEquals(150, tryAsset.getUsableSize());
+        assertEquals(BigDecimal.valueOf(150), tryAsset.getSize());
+        assertEquals(BigDecimal.valueOf(150), tryAsset.getUsableSize());
         verify(transactionRepository, times(1)).save(any(Transaction.class));
     }
 
     @Test
     public void testWithdraw_InsufficientBalance() {
-        withdrawRequest = new WithdrawRequest(customerId, 250, "");
+        withdrawRequest = new WithdrawRequest(customerId, BigDecimal.valueOf(250), "");
         when(customerService.getById(customerId)).thenReturn(customer);
         when(assetService.getAssetByCustomerIdAndName(customerId, "TRY")).thenReturn(tryAsset);
 

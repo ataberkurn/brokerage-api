@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -39,7 +40,7 @@ public class OrderService {
         logger.info("Creating order for customer: {}", request.customerId());
         validateRequest(request);
 
-        int totalCost = request.price() * request.size();
+        BigDecimal totalCost = request.price().multiply(request.size());
         Asset tryAsset = assetService.getAssetByCustomerIdAndName(request.customerId(), "TRY");
         Asset requestedAsset = getOrCreateRequestedAsset(request);
 
@@ -69,27 +70,27 @@ public class OrderService {
             requestedAsset = new Asset();
             requestedAsset.setCustomer(customerService.getById(request.customerId()));
             requestedAsset.setName(request.assetName());
-            requestedAsset.setSize(0);
-            requestedAsset.setUsableSize(0);
+            requestedAsset.setSize(BigDecimal.ZERO);
+            requestedAsset.setUsableSize(BigDecimal.ZERO);
         }
         return requestedAsset;
     }
 
-    private void processOrder(OrderRequest request, int totalCost, Asset tryAsset, Asset requestedAsset) {
+    private void processOrder(OrderRequest request, BigDecimal totalCost, Asset tryAsset, Asset requestedAsset) {
         if (request.side() == OrderSide.BUY) {
-            if (tryAsset.getUsableSize() < totalCost) {
+            if (tryAsset.getUsableSize().compareTo(totalCost) < 0) {
                 throw new InsufficientBalanceException("not enough usable size in TRY asset.");
             }
 
-            tryAsset.setUsableSize(tryAsset.getUsableSize() - totalCost);
-            requestedAsset.setUsableSize(requestedAsset.getUsableSize() + request.size());
+            tryAsset.setUsableSize(tryAsset.getUsableSize().subtract(totalCost));
+            requestedAsset.setUsableSize(requestedAsset.getUsableSize().add(request.size()));
         } else if (request.side() == OrderSide.SELL) {
-            if (requestedAsset.getUsableSize() < request.size()) {
+            if (requestedAsset.getUsableSize().compareTo(request.size()) < 0) {
                 throw new InsufficientBalanceException("not enough usable size in your requested asset.");
             }
 
-            tryAsset.setUsableSize(tryAsset.getUsableSize() + totalCost);
-            requestedAsset.setUsableSize(requestedAsset.getUsableSize() - request.size());
+            tryAsset.setUsableSize(tryAsset.getUsableSize().add(totalCost));
+            requestedAsset.setUsableSize(requestedAsset.getUsableSize().subtract(request.size()));
         }
     }
 
@@ -117,11 +118,11 @@ public class OrderService {
 
         if (order.getSide() == OrderSide.BUY) {
             Asset asset = assetService.getAssetByCustomerIdAndName(order.getCustomer().getId(), order.getAssetName());
-            asset.setSize(asset.getSize() + order.getSize());
+            asset.setSize(asset.getSize().add(order.getSize()));
             assetService.save(asset);
         } else if (order.getSide() == OrderSide.SELL) {
             Asset tryAsset = assetService.getAssetByCustomerIdAndName(order.getCustomer().getId(), "TRY");
-            tryAsset.setSize(tryAsset.getSize() + (order.getSize() * order.getPrice()));
+            tryAsset.setSize(tryAsset.getSize().add(order.getSize().multiply(order.getPrice())));
             assetService.save(tryAsset);
         }
 
@@ -154,10 +155,10 @@ public class OrderService {
             throw new IllegalStateException("Order cannot be cancelled");
         }
 
-        int amountToReturn = order.getPrice() * order.getSize();
+        BigDecimal amountToReturn = order.getPrice().multiply(order.getSize());
 
         Asset tryAsset = assetService.getAssetByCustomerIdAndName(order.getCustomer().getId(), "TRY");
-        tryAsset.setUsableSize(tryAsset.getUsableSize() + amountToReturn);
+        tryAsset.setUsableSize(tryAsset.getUsableSize().add(amountToReturn));
         assetService.save(tryAsset);
 
         updateStatus(order, OrderStatus.CANCELLED);

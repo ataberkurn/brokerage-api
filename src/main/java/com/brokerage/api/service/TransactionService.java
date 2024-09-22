@@ -14,6 +14,8 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
@@ -27,14 +29,14 @@ public class TransactionService {
     @Transactional
     public boolean deposit(DepositRequest request) {
         logger.info("Depositing amount: {} for customer: {}", request.amount(), request.customerId());
-        if (request.amount() < 0) {
+        if (request.amount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Deposit amount must be positive.");
         }
         Customer customer = customerService.getById(request.customerId());
 
         Asset tryAsset = assetService.getAssetByCustomerIdAndName(request.customerId(), "TRY");
-        tryAsset.setSize(tryAsset.getSize() + request.amount());
-        tryAsset.setUsableSize(tryAsset.getUsableSize() + request.amount());
+        tryAsset.setSize(tryAsset.getSize().add(request.amount()));
+        tryAsset.setUsableSize(tryAsset.getUsableSize().add(request.amount()));
         assetService.save(tryAsset);
 
         recordTransaction(customer, request.amount(), TransactionType.DEPOSIT);
@@ -52,12 +54,12 @@ public class TransactionService {
         }
 
         Asset tryAsset = assetService.getAssetByCustomerIdAndName(request.customerId(), "TRY");
-        if (tryAsset.getUsableSize() < request.amount()) {
+        if (tryAsset.getUsableSize().compareTo(request.amount()) < 0) {
             throw new InsufficientBalanceException("Insufficient balance");
         }
 
-        tryAsset.setSize(tryAsset.getSize() - request.amount());
-        tryAsset.setUsableSize(tryAsset.getUsableSize() - request.amount());
+        tryAsset.setSize(tryAsset.getSize().subtract(request.amount()));
+        tryAsset.setUsableSize(tryAsset.getUsableSize().subtract(request.amount()));
         assetService.save(tryAsset);
 
         recordTransaction(customer, request.amount(), TransactionType.WITHDRAW);
@@ -65,7 +67,7 @@ public class TransactionService {
         return true;
     }
 
-    private void recordTransaction(Customer customer, int amount, TransactionType type) {
+    private void recordTransaction(Customer customer, BigDecimal amount, TransactionType type) {
         Transaction transaction = new Transaction();
         transaction.setType(type);
         transaction.setCustomer(customer);

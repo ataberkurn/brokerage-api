@@ -17,6 +17,7 @@ import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 import org.springframework.aop.framework.AopContext;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,17 +67,17 @@ public class OrderServiceTest {
         MockitoAnnotations.openMocks(this);
         mockedStatic = mockStatic(AopContext.class);
         customerId = UUID.randomUUID();
-        orderRequest = new OrderRequest(customerId, "ABC", OrderSide.BUY, 10, 100);
+        orderRequest = new OrderRequest(customerId, "ABC", OrderSide.BUY, BigDecimal.TEN, BigDecimal.valueOf(100));
 
         tryAsset = new Asset();
         tryAsset.setName("TRY");
-        tryAsset.setSize(1000);
-        tryAsset.setUsableSize(1000);
+        tryAsset.setSize(BigDecimal.valueOf(1000));
+        tryAsset.setUsableSize(BigDecimal.valueOf(1000));
 
         requestedAsset = new Asset();
         requestedAsset.setName("ABC");
-        requestedAsset.setSize(0);
-        requestedAsset.setUsableSize(0);
+        requestedAsset.setSize(BigDecimal.ZERO);
+        requestedAsset.setUsableSize(BigDecimal.ZERO);
     }
 
     @Test
@@ -113,9 +114,9 @@ public class OrderServiceTest {
 
     @Test
     public void testCreate_ConcurrentOrders() throws InterruptedException, ExecutionException {
-        OrderRequest request = new OrderRequest(customerId, "ABC", OrderSide.BUY, 1, 100);
+        OrderRequest request = new OrderRequest(customerId, "ABC", OrderSide.BUY, BigDecimal.ONE, BigDecimal.valueOf(100));
         Asset sharedAsset = new Asset();
-        sharedAsset.setUsableSize(100);
+        sharedAsset.setUsableSize(BigDecimal.valueOf(100));
 
         when(userService.userExists(customerId)).thenReturn(true);
         when(assetValidationService.isAssetValid(request.assetName())).thenReturn(true);
@@ -200,7 +201,7 @@ public class OrderServiceTest {
         Customer customer = new Customer();
         customer.setId(customerId);
         order.setCustomer(customer);
-        order.setSize(10);
+        order.setSize(BigDecimal.TEN);
         order.setAssetName("ABC");
         order.setStatus(OrderStatus.PENDING);
 
@@ -212,7 +213,7 @@ public class OrderServiceTest {
         boolean result = orderService.match(orderId);
 
         assertTrue(result);
-        assertEquals(10, requestedAsset.getSize());
+        assertEquals(BigDecimal.TEN, requestedAsset.getSize());
         verify(orderRepository, times(1)).save(order);
     }
 
@@ -236,8 +237,8 @@ public class OrderServiceTest {
         Order order = new Order();
         order.setId(orderId);
         order.setStatus(OrderStatus.PENDING);
-        order.setSize(10);
-        order.setPrice(100);
+        order.setSize(BigDecimal.TEN);
+        order.setPrice(BigDecimal.valueOf(100));
         Customer customer = new Customer();
         customer.setId(customerId);
         order.setCustomer(customer);
@@ -249,7 +250,7 @@ public class OrderServiceTest {
         boolean result = orderService.delete(orderId);
 
         assertTrue(result);
-        assertEquals(2000, tryAsset.getUsableSize());
+        assertEquals(BigDecimal.valueOf(2000), tryAsset.getUsableSize());
         verify(orderRepository, times(1)).save(order);
     }
 
