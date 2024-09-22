@@ -18,7 +18,7 @@
             <AppenderRef ref="Console"/>
         </Root>
         <Logger name="com.brokerage.api" level="error" additivity="false">
-            <AppenderRef ref="File"/>
+            <AppenderRef ref="RollingFile"/>
         </Logger>
     </Loggers>
 </Configuration>
