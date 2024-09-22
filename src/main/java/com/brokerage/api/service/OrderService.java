@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -27,7 +28,7 @@ public class OrderService {
     private final AssetService assetService;
     private final AssetValidationService assetValidationService;
 
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public boolean create(OrderRequest request) {
         validateRequest(request);
 
@@ -96,7 +97,7 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public boolean match(UUID orderId) {
         Order order = getById(orderId);
 
@@ -132,7 +133,7 @@ public class OrderService {
         return orderRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Order", "ID", id));
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public boolean delete(UUID orderId) {
         Order order = getById(orderId);
 
