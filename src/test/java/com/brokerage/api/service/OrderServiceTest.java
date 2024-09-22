@@ -13,7 +13,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
+import org.springframework.aop.framework.AopContext;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -31,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,6 +52,7 @@ public class OrderServiceTest {
     private AssetValidationService assetValidationService;
     @InjectMocks
     private OrderService orderService;
+    private MockedStatic<AopContext> mockedStatic;
 
     private final int NUM_THREADS = 10;
     private final ExecutorService executorService = Executors.newFixedThreadPool(NUM_THREADS);
@@ -60,6 +64,7 @@ public class OrderServiceTest {
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        mockedStatic = mockStatic(AopContext.class);
         customerId = UUID.randomUUID();
         orderRequest = new OrderRequest(customerId, "ABC", OrderSide.BUY, 10, 100);
 
@@ -199,6 +204,7 @@ public class OrderServiceTest {
         order.setAssetName("ABC");
         order.setStatus(OrderStatus.PENDING);
 
+        mockedStatic.when(AopContext::currentProxy).thenReturn(orderService);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
         when(assetService.getAssetByCustomerIdAndName(customerId, "ABC")).thenReturn(requestedAsset);
         when(assetService.save(any(Asset.class))).thenReturn(requestedAsset);
@@ -217,6 +223,7 @@ public class OrderServiceTest {
         order.setId(orderId);
         order.setStatus(OrderStatus.MATCHED);
 
+        mockedStatic.when(AopContext::currentProxy).thenReturn(orderService);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
 
         Exception exception = assertThrows(IllegalStateException.class, () -> orderService.match(orderId));
@@ -235,6 +242,7 @@ public class OrderServiceTest {
         customer.setId(customerId);
         order.setCustomer(customer);
 
+        mockedStatic.when(AopContext::currentProxy).thenReturn(orderService);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
         when(assetService.getAssetByCustomerIdAndName(customerId, "TRY")).thenReturn(tryAsset);
 
@@ -252,6 +260,7 @@ public class OrderServiceTest {
         order.setId(orderId);
         order.setStatus(OrderStatus.CANCELLED);
 
+        mockedStatic.when(AopContext::currentProxy).thenReturn(orderService);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
 
         Exception exception = assertThrows(IllegalStateException.class, () -> orderService.delete(orderId));
@@ -261,5 +270,6 @@ public class OrderServiceTest {
     @AfterEach
     public void tearDown() {
         executorService.shutdown();
+        mockedStatic.close();
     }
 }
