@@ -11,7 +11,8 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpStatus;
@@ -22,10 +23,13 @@ import java.time.Duration;
 import java.util.Optional;
 
 @Component
-@RequiredArgsConstructor
 public class IpRateLimitingFilter implements Filter {
 
-    private final CacheManager ehcacheCacheManager;
+    private CacheManager ehcacheCacheManager;
+
+    public IpRateLimitingFilter(@Qualifier("ehcacheCacheManager") CacheManager ehcacheCacheManager) {
+        this.ehcacheCacheManager = ehcacheCacheManager;
+    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {

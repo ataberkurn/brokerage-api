@@ -5,6 +5,7 @@ import com.brokerage.api.entity.Asset;
 import com.brokerage.api.entity.Order;
 import com.brokerage.api.enumeration.OrderSide;
 import com.brokerage.api.enumeration.OrderStatus;
+import com.brokerage.api.exception.InsufficientBalanceException;
 import com.brokerage.api.exception.ResourceNotFoundException;
 import com.brokerage.api.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,6 +26,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class OrderService {
 
+    private final Logger logger = LogManager.getLogger(OrderService.class);
+
     private final OrderRepository orderRepository;
     private final UserService userService;
     private final CustomerService customerService;
@@ -31,6 +36,7 @@ public class OrderService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public boolean create(OrderRequest request) {
+        logger.info("Creating order for customer: {}", request.customerId());
         validateRequest(request);
 
         int totalCost = request.price() * request.size();
@@ -43,6 +49,7 @@ public class OrderService {
         assetService.save(requestedAsset);
 
         recordOrder(request);
+        logger.info("Order created successfully for customer: {}", request.customerId());
         return true;
     }
 
@@ -71,14 +78,14 @@ public class OrderService {
     private void processOrder(OrderRequest request, int totalCost, Asset tryAsset, Asset requestedAsset) {
         if (request.side() == OrderSide.BUY) {
             if (tryAsset.getUsableSize() < totalCost) {
-                throw new IllegalArgumentException("not enough usable size in TRY asset.");
+                throw new InsufficientBalanceException("not enough usable size in TRY asset.");
             }
 
             tryAsset.setUsableSize(tryAsset.getUsableSize() - totalCost);
             requestedAsset.setUsableSize(requestedAsset.getUsableSize() + request.size());
         } else if (request.side() == OrderSide.SELL) {
             if (requestedAsset.getUsableSize() < request.size()) {
-                throw new IllegalArgumentException("not enough usable size in your requested asset.");
+                throw new InsufficientBalanceException("not enough usable size in your requested asset.");
             }
 
             tryAsset.setUsableSize(tryAsset.getUsableSize() + totalCost);
@@ -100,6 +107,7 @@ public class OrderService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public boolean match(UUID orderId) {
+        logger.info("Matching order with ID: {}", orderId);
         OrderService proxy = (OrderService) AopContext.currentProxy();
         Order order = proxy.getById(orderId);
 
@@ -118,6 +126,7 @@ public class OrderService {
         }
 
         updateStatus(order, OrderStatus.MATCHED);
+        logger.info("Order matched successfully with ID: {}", orderId);
         return true;
     }
 
@@ -137,6 +146,7 @@ public class OrderService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public boolean delete(UUID orderId) {
+        logger.info("Deleting order with ID: {}", orderId);
         OrderService proxy = (OrderService) AopContext.currentProxy();
         Order order = proxy.getById(orderId);
 
@@ -151,6 +161,7 @@ public class OrderService {
         assetService.save(tryAsset);
 
         updateStatus(order, OrderStatus.CANCELLED);
+        logger.info("Order cancelled successfully with ID: {}", orderId);
         return true;
     }
 

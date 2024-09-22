@@ -15,7 +15,7 @@ import java.util.UUID;
 @Component
 public class AccessCheckAspect {
 
-    @Around("@annotation(CheckCustomerAccess)")
+    @Around("@annotation(com.brokerage.api.annotation.CheckCustomerAccess)")
     public Object checkAccess(ProceedingJoinPoint joinPoint) throws Throwable {
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         UUID targetCustomerId = (UUID) joinPoint.getArgs()[0];

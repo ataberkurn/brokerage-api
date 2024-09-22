@@ -9,6 +9,8 @@ import com.brokerage.api.enumeration.TransactionType;
 import com.brokerage.api.exception.InsufficientBalanceException;
 import com.brokerage.api.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,12 +18,15 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class TransactionService {
 
+    private final Logger logger = LogManager.getLogger(TransactionService.class);
+
     private final TransactionRepository transactionRepository;
     private final CustomerService customerService;
     private final AssetService assetService;
 
     @Transactional
     public boolean deposit(DepositRequest request) {
+        logger.info("Depositing amount: {} for customer: {}", request.amount(), request.customerId());
         if (request.amount() < 0) {
             throw new IllegalArgumentException("Deposit amount must be positive.");
         }
@@ -33,11 +38,13 @@ public class TransactionService {
         assetService.save(tryAsset);
 
         recordTransaction(customer, request.amount(), TransactionType.DEPOSIT);
+        logger.info("Deposit completed successfully for customer: {}", request.customerId());
         return true;
     }
 
     @Transactional
     public boolean withdraw(WithdrawRequest request) {
+        logger.info("Withdrawing amount: {} for customer: {}", request.amount(), request.customerId());
         Customer customer = customerService.getById(request.customerId());
 
         if (customer.getIban() == null) {
@@ -54,6 +61,7 @@ public class TransactionService {
         assetService.save(tryAsset);
 
         recordTransaction(customer, request.amount(), TransactionType.WITHDRAW);
+        logger.info("Withdraw completed successfully for customer: {}", request.customerId());
         return true;
     }
 
