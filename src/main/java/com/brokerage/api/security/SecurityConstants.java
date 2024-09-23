@@ -1,6 +1,20 @@
 package com.brokerage.api.security;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+@Component
 public class SecurityConstants {
-    public static final String SECRET = "aP7s8Jx9K0bFqN6mV4yT1z2LwR3dX9Pv";
-    public static final long EXPIRATION_TIME = 86400000L;
+    @Value("${jwt.secret}")
+    private String secret;
+    @Value("${jwt.expiration-time}")
+    private long expirationTime;
+
+    public String getSecret() {
+        return secret;
+    }
+
+    public Long getExpirationTime() {
+        return expirationTime;
+    }
 }

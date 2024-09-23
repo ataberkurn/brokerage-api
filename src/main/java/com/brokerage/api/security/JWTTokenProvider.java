@@ -23,11 +23,13 @@ import java.util.Date;
 @Component
 public class JWTTokenProvider {
     private final UserService userService;
+    private final SecurityConstants securityConstants;
     private final Key key;
 
-    public JWTTokenProvider(@Lazy UserService userService) {
+    public JWTTokenProvider(@Lazy UserService userService, SecurityConstants securityConstants) {
         this.userService = userService;
-        this.key = Keys.hmacShaKeyFor(SecurityConstants.SECRET.getBytes());
+        this.securityConstants = securityConstants;
+        this.key = Keys.hmacShaKeyFor(securityConstants.getSecret().getBytes());
     }
 
     public String createToken(String email) {
@@ -36,7 +38,7 @@ public class JWTTokenProvider {
         claims.put("auth", new SimpleGrantedAuthority(user.getRole().getAuthority()));
 
         Date now = new Date();
-        Date validity = new Date(now.getTime() + SecurityConstants.EXPIRATION_TIME);
+        Date validity = new Date(now.getTime() + securityConstants.getExpirationTime());
 
         return Jwts.builder()
                 .setClaims(claims)
